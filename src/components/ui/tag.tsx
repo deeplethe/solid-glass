@@ -22,6 +22,7 @@ function Tag({
   removeLabel = "Remove",
   className,
   children,
+  ref,
   ...props
 }: React.ComponentProps<"span"> & {
   icon?: React.ReactNode
@@ -35,8 +36,33 @@ function Tag({
 }) {
   const going = progress !== undefined && !error
   const percent = Math.round((progress ?? 0) * 100)
+
+  // A tag removed on its own x takes the keyboard with it: the page has the
+  // focus, and the next Tab starts from its top. The cleanup runs while the
+  // tag is still in the page, so it can hand the focus on first — to the next
+  // tag's x, else the one before, else the text the tags are attached to.
+  const root = React.useRef<HTMLSpanElement | null>(null)
+  React.useLayoutEffect(() => {
+    const el = root.current
+    return () => {
+      if (!el || !el.contains(document.activeElement)) return
+      const tags = el.parentElement ? [...el.parentElement.querySelectorAll<HTMLElement>('[data-slot="tag"]')] : []
+      const at = tags.indexOf(el)
+      const neighbour = tags[at + 1] ?? tags[at - 1]
+      const next =
+        neighbour?.querySelector<HTMLElement>("button") ??
+        el.closest('[data-slot="composer"]')?.querySelector<HTMLElement>("textarea")
+      next?.focus()
+    }
+  }, [])
+
   return (
     <span
+      ref={(node) => {
+        root.current = node
+        if (typeof ref === "function") return ref(node)
+        if (ref) ref.current = node
+      }}
       data-slot="tag"
       title={error}
       className={cn(
