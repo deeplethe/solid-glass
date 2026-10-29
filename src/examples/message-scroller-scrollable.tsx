@@ -32,7 +32,7 @@ const messages = Array.from({ length: 12 }, (_, index) => ({
   text: string
 }>
 
-export function MessageScrollerState() {
+export function MessageScrollerScrollable() {
   return (
     <Card className="mx-auto h-112 w-full max-w-md gap-0">
       <CardHeader className="border-b">
