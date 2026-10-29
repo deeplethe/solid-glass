@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 
 import { cn } from "@/lib/utils"
 import { blocks, type Block } from "@/blocks"
+import type { BlockSource } from "@/blocks/source"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { StatusGlyph } from "@/components/ui/status-glyph"
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
@@ -18,6 +19,63 @@ const WIDTHS = [
   { name: "Tablet", icon: TabletIcon, width: "768px" },
   { name: "Mobile", icon: SmartphoneIcon, width: "390px" },
 ]
+
+/** Mounted only while Code is visible; leaving the panel ignores any pending result. */
+function BlockCode({ block, file, setFile }: {
+  block: Block
+  file: number
+  setFile: (index: number) => void
+}) {
+  const [source, setSource] = React.useState<BlockSource>()
+  const [failed, setFailed] = React.useState(false)
+  const [attempt, setAttempt] = React.useState(0)
+
+  React.useEffect(() => {
+    let active = true
+    setSource(undefined)
+    setFailed(false)
+    block.loadSource().then(
+      (loaded) => { if (active) setSource(loaded) },
+      () => { if (active) setFailed(true) },
+    )
+    return () => { active = false }
+  }, [block, attempt])
+
+  if (failed) return (
+    <div role="alert" className="flex items-center gap-3 text-sm text-muted-foreground">
+      <p>Could not load this block's source.</p>
+      <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>Retry</Button>
+    </div>
+  )
+  if (!source) return <p role="status" className="text-sm text-muted-foreground">Loading source…</p>
+
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
+      {source.note && <p className="w-full text-sm text-muted-foreground">{source.note}</p>}
+      {source.files.length > 1 && (
+        <div className="glass-panel flex shrink-0 gap-px overflow-x-auto rounded-xl p-1.5 md:w-56 md:flex-col md:self-start">
+          {source.files.map((entry, index) => (
+            <button
+              key={entry.path}
+              type="button"
+              aria-pressed={index === file}
+              onClick={() => setFile(index)}
+              className={cn("shrink-0 truncate rounded-sm px-2 py-1 text-left font-mono text-xs text-muted-foreground outline-none hover:text-foreground", index === file && "glass-chosen text-foreground")}
+            >
+              {entry.path}
+            </button>
+          ))}
+        </div>
+      )}
+      <CodeBlock
+        className="my-0 min-w-0 flex-1 [&_pre]:max-h-[720px]"
+        title={source.files[file].path}
+        lang={source.files[file].path.endsWith(".json") ? "json" : "tsx"}
+        code={source.files[file].source}
+      />
+    </div>
+  )
+}
 
 /** One block: a bar to switch between looking at it and reading it, then the block in a frame of its own. */
 function BlockViewer({ block }: { block: Block }) {
@@ -101,30 +159,7 @@ function BlockViewer({ block }: { block: Block }) {
           />
         </div>
       ) : (
-        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
-          {block.note && <p className="w-full text-sm text-muted-foreground">{block.note}</p>}
-          {block.files.length > 1 && (
-            <div className="glass-panel flex shrink-0 gap-px overflow-x-auto rounded-xl p-1.5 md:w-56 md:flex-col md:self-start">
-              {block.files.map((entry, index) => (
-                <button
-                  key={entry.path}
-                  type="button"
-                  aria-pressed={index === file}
-                  onClick={() => setFile(index)}
-                  className={cn("shrink-0 truncate rounded-sm px-2 py-1 text-left font-mono text-xs text-muted-foreground outline-none hover:text-foreground", index === file && "glass-chosen text-foreground")}
-                >
-                  {entry.path}
-                </button>
-              ))}
-            </div>
-          )}
-          <CodeBlock
-            className="my-0 min-w-0 flex-1 [&_pre]:max-h-[720px]"
-            title={block.files[file].path}
-            lang={block.files[file].path.endsWith(".json") ? "json" : "tsx"}
-            code={block.files[file].source}
-          />
-        </div>
+        <BlockCode key={block.name} block={block} file={file} setFile={setFile} />
       )}
     </section>
   )
