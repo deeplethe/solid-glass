@@ -1343,6 +1343,15 @@ svg.fill-primary:has(> circle) > circle {
     .animate-fade-in {
       animation: none;
     }
+
+    /* The stock components' loops: the spinner and the skeleton pulse are
+       Tailwind's utilities, so they are stopped here, in the stylesheet,
+       rather than by editing the stock components. The caret blink is left
+       alone: it marks where text goes, it does not decorate. */
+    .animate-spin,
+    .animate-pulse {
+      animation: none;
+    }
   }
 
   .scrollbar-thin {
