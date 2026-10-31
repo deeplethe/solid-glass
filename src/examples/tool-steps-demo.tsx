@@ -22,13 +22,21 @@ const steps: Step[] = [
 
 export default function ToolStepsDemo() {
   const [status, setStatus] = React.useState<Step["status"]>("running")
+  // A second call joining the first: the one line becomes a group round it.
+  const [joined, setJoined] = React.useState(false)
   const timer = React.useRef(0)
   React.useEffect(() => () => window.clearTimeout(timer.current), [])
 
   const finish = (next: "done" | "error") => {
     window.clearTimeout(timer.current)
     setStatus("running")
+    setJoined(false)
     timer.current = window.setTimeout(() => setStatus(next), 2000)
+  }
+  const join = () => {
+    window.clearTimeout(timer.current)
+    setJoined(false)
+    timer.current = window.setTimeout(() => setJoined(true), 2000)
   }
   const single: Step = {
     id: "single-run",
@@ -45,11 +53,18 @@ export default function ToolStepsDemo() {
       <StepGroup steps={steps} />
       <div className="flex flex-col gap-2">
         <p className="text-xs text-muted-foreground">Schedule a result, then open the call while it runs.</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => finish("done")}>Finish after 2s</Button>
           <Button variant="outline" size="sm" onClick={() => finish("error")}>Fail after 2s</Button>
+          <Button variant="outline" size="sm" onClick={join}>Second call after 2s</Button>
         </div>
-        <StepGroup steps={[single]} />
+        <StepGroup
+          steps={
+            joined
+              ? [single, { id: "second-run", label: "Running pytest", status: "running", detail: "pytest -q", detailLabel: "Command" }]
+              : [single]
+          }
+        />
       </div>
     </div>
   )
