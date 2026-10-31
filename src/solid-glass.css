@@ -861,6 +861,28 @@
   --tw-ring-shadow: 0 0 0 1px var(--background), 0 0 0 3px var(--focus-line);
 }
 
+/* The lines of text that are buttons: a turn's status line, a step, a
+   thought's heading, a tag's x, the choices on a card, a pick under the
+   composer. They are neither fields nor panes, so a ring would be a smudge
+   round a word, and a change of grey alone cannot be seen (it was tried). The
+   one the keyboard is on gets a hairline a little off the words, in the line
+   the ring is drawn in. Outside the layers, so a component's outline-none
+   cannot take it away. */
+:is(
+    [data-slot="turn-status"],
+    [data-slot="step-row"],
+    [data-slot="step-group"],
+    [data-slot="ask-card"],
+    [data-slot="tag"]
+  )
+  :is(button, summary):focus-visible,
+[data-slot="reasoning"] > summary:focus-visible,
+[data-slot="context-ring-detail"]:focus-visible,
+[data-slot="composer-pick"]:focus-visible {
+  outline: 1px solid var(--focus-line);
+  outline-offset: 2px;
+}
+
 /* Some of shadcn/ui's menus are painted in a see-through popover colour.
    Here what floats is the thickest glass, whichever component it belongs to. */
 [data-slot="select-content"],

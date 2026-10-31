@@ -79,6 +79,7 @@ function ContextRing({
       <PopoverContent side="top" align="end" sideOffset={8} className="w-72 gap-2 p-3">
         <button
           type="button"
+          data-slot="context-ring-detail"
           disabled={!parts.length}
           aria-expanded={detailed}
           onClick={() => setDetailed((open) => !open)}
