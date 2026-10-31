@@ -25,6 +25,11 @@ const slug = (text) =>
 // The whole name: "className" must not be found inside "previewClassName".
 const attr = (tag, name) => tag.match(new RegExp(`(?:^|[\\s<])${name}="([^"]*)"`))?.[1]
 
+// Previews dropped because their example file does not exist, by page. A name
+// ending in -rtl is not one: those examples are never files, and the RTL
+// heading they sit under is skipped below, so nothing is lost.
+const dropped = []
+
 function parse(file, section) {
   const raw = readFileSync(file, "utf8")
   const front = raw.match(/^---\n([\s\S]*?)\n---\n/)
@@ -98,6 +103,7 @@ function parse(file, section) {
       flush()
       const [tag, end] = tagAt(i)
       const name = attr(tag, "name")
+      if (name && !hasExample(name) && !name.endsWith("-rtl")) dropped.push(`${file.slice(root.length + 1)}: ${name}`)
       if (name && hasExample(name)) {
         blocks.push({
           type: "preview",
@@ -214,3 +220,10 @@ const legacy = join(out, "generated.json")
 if (existsSync(legacy)) unlinkSync(legacy)
 
 console.log(`docs: ${pages.length} pages -> src/docs/catalog.json + src/docs/pages/`)
+if (dropped.length) {
+  // A warning, not a failure: the pages below already ship without these
+  // examples, and failing here would block the build until each one is
+  // written. The list is the work to do, not a reason to stop.
+  console.error(`docs: ${dropped.length} preview(s) dropped, no example file:`)
+  for (const entry of dropped) console.error(`  ${entry}`)
+}
