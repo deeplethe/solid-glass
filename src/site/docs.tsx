@@ -129,26 +129,12 @@ function Install({ block }: { block: Extract<Block, { type: "install" }> }) {
           </button>
         ))}
       </div>
-      {tab === "cli" ? (
-        block.cli && <CommandBlock command={block.cli} />
-      ) : (
-        <div className="ml-3.5 border-l pb-1 pl-7 [counter-reset:step]">
-          {block.packages && (
-            <>
-              <Step>Install the following dependencies:</Step>
-              <CommandBlock command={block.packages} />
-            </>
-          )}
-          <Step>Copy and paste the following code into your project.</Step>
-          {block.source && <ComponentSource name={block.source} />}
-          <Step>Update the import paths to match your project setup.</Step>
-        </div>
-      )}
+      <Blocks blocks={block[tab]} />
     </div>
   )
 }
 
-function Blocks({ blocks }: { blocks: Block[] }) {
+function Blocks({ blocks, numbered = false }: { blocks: Block[]; numbered?: boolean }) {
   return (
     <>
       {blocks.map((block, index) => {
@@ -187,7 +173,14 @@ function Blocks({ blocks }: { blocks: Block[] }) {
                 <Prose>{block.text}</Prose>
               </div>
             )
+          case "steps":
+            return (
+              <div key={index} className="ml-3.5 border-l pb-1 pl-7 [counter-reset:step]">
+                <Blocks blocks={block.blocks} numbered />
+              </div>
+            )
           case "step":
+            if (numbered) return <Step key={index}>{block.text}</Step>
             return (
               <p key={index} className="mt-6 font-medium">
                 {block.text}

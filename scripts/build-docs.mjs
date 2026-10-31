@@ -25,17 +25,8 @@ const slug = (text) =>
 // The whole name: "className" must not be found inside "previewClassName".
 const attr = (tag, name) => tag.match(new RegExp(`(?:^|[\\s<])${name}="([^"]*)"`))?.[1]
 
-function parse(file, section) {
-  const raw = readFileSync(file, "utf8")
-  const front = raw.match(/^---\n([\s\S]*?)\n---\n/)
-  const meta = Object.fromEntries(
-    (front?.[1] ?? "")
-      .split("\n")
-      .map((line) => line.match(/^(\w+):\s*(.*)$/))
-      .filter(Boolean)
-      .map(([, key, value]) => [key, value.replace(/^["']|["']$/g, "")])
-  )
-  const lines = raw.slice(front?.[0].length ?? 0).split("\n")
+function parseBlocks(body, installation = false) {
+  const lines = body.replace(/\r\n/g, "\n").split("\n")
   const blocks = []
   let text = []
   const flush = () => {
@@ -81,18 +72,29 @@ function parse(file, section) {
       flush()
       while (i < lines.length - 1 && !/from\s+["'][^"']+["'];?\s*$/.test(lines[i]) && lines[i].trim() !== "") i++
     } else if (/^<CodeTabs/.test(line)) {
-      // How to install: the command, and by hand the packages and then the source.
       flush()
       let end = i
       while (end < lines.length && !/^<\/CodeTabs>/.test(lines[end])) end++
-      const inner = lines.slice(i, end).join("\n")
-      const fences = [...inner.matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1].trim())
-      blocks.push({
-        type: "install",
-        cli: fences.find((code) => code.includes("shadcn")),
-        packages: fences.find((code) => /^(npm|pnpm) (install|add)/.test(code)),
-        source: attr(inner.match(/<ComponentSource[\s\S]*?\/>/)?.[0] ?? "", "name"),
-      })
+      const inner = lines.slice(i + 1, end).join("\n")
+      const tabs = [...inner.matchAll(/<TabsContent value="(cli|manual)">([\s\S]*?)<\/TabsContent>/g)]
+      if (tabs.length) {
+        const install = { type: "install", cli: [], manual: [] }
+        for (const [, tab, body] of tabs) install[tab] = parseBlocks(body, true)
+        blocks.push(install)
+      } else {
+        // Solid's compact form places the CLI first, followed by manual dependencies and source.
+        const content = parseBlocks(inner)
+        const cli = content.filter((block) => block.type === "code" && block.code.includes("shadcn"))
+        const manual = content.filter((block) => !cli.includes(block))
+        const steps = []
+        for (const block of manual) {
+          if (block.type === "code") steps.push({ type: "step", text: "Install the following dependencies:" })
+          if (block.type === "source") steps.push({ type: "step", text: "Copy and paste the following code into your project." })
+          steps.push(block)
+        }
+        steps.push({ type: "step", text: "Update the import paths to match your project setup." })
+        blocks.push({ type: "install", cli, manual: [{ type: "steps", blocks: steps }] })
+      }
       i = end
     } else if (/^<ComponentPreview/.test(line)) {
       flush()
@@ -128,6 +130,12 @@ function parse(file, section) {
       const body = lines.slice(i, end + 1).join("\n").replace(/<\/?Callout[^>]*>/g, "").trim()
       if (body) blocks.push({ type: "callout", text: body })
       i = end
+    } else if (installation && /^<Steps(?:\s|>)/.test(line)) {
+      flush()
+      let end = i + 1
+      while (end < lines.length && !/^<\/Steps>/.test(lines[end])) end++
+      blocks.push({ type: "steps", blocks: parseBlocks(lines.slice(i + 1, end).join("\n"), true) })
+      i = end
     } else if (/^<Step>/.test(line)) {
       flush()
       blocks.push({ type: "step", text: line.replace(/<\/?Step>/g, "").trim() })
@@ -148,6 +156,20 @@ function parse(file, section) {
   }
   flush()
 
+  return blocks
+}
+
+function parse(file, section) {
+  const raw = readFileSync(file, "utf8")
+  const front = raw.match(/^---\n([\s\S]*?)\n---\n/)
+  const meta = Object.fromEntries(
+    (front?.[1] ?? "")
+      .split("\n")
+      .map((line) => line.match(/^(\w+):\s*(.*)$/))
+      .filter(Boolean)
+      .map(([, key, value]) => [key, value.replace(/^["']|["']$/g, "")])
+  )
+  const blocks = parseBlocks(raw.slice(front?.[0].length ?? 0))
   // What cannot be shown here goes, heading and all: right-to-left examples need the site's
   // language switcher, and a heading whose previews were all dropped has nothing under it.
   const kept = []
