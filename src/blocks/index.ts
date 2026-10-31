@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { BlockSource } from "./source";
 
 /**
  * The blocks: whole screens made of the components. A block is shown on the Blocks page in a frame
@@ -19,78 +20,26 @@ export type Block = {
   own?: boolean;
   /** How tall a window it is shown in. */
   height?: number;
-  /** Said beside the code, where what is shown is not quite what the command installs. */
-  note?: string;
-  files: { path: string; source: string }[];
+  loadSource: () => Promise<BlockSource>;
   component: React.LazyExoticComponent<React.ComponentType>;
 };
 
-const sources = import.meta.glob<string>(
-  ["/src/blocks/**/*.tsx", "/src/blocks/**/*.json"],
-  { query: "?raw", import: "default", eager: true },
-);
 const pages = import.meta.glob<{ default: React.ComponentType }>([
   "/src/blocks/*.tsx",
   "/src/blocks/*/page.tsx",
 ]);
 
-/** The files a block is made of, the page first. */
-function filesOf(name: string, own?: boolean) {
-  if (own)
-    return [
-      {
-        path: `components/${name}.tsx`,
-        source: sources[`/src/blocks/${name}.tsx`],
-      },
-    ];
-  const prefix = `/src/blocks/${name}/`;
-  const files = Object.keys(sources)
-    .filter((path) => path.startsWith(prefix))
-    .map((path) => ({ path: path.slice(prefix.length), source: sources[path] }))
-    .sort(
-      (a, b) =>
-        Number(b.path === "page.tsx") - Number(a.path === "page.tsx") ||
-        a.path.localeCompare(b.path),
-    );
-  // The page that fills a sidebar block's empty boxes is shared by them, and shown with each.
-  if (files[0]?.source.includes(OVERVIEW))
-    files.push({
-      path: "shared/overview.tsx",
-      source: sources["/src/blocks/shared/overview.tsx"],
-    });
-  // Previews use the site's block folders; copied files live at the paths shown above.
-  return files.map((file) => ({
-    ...file,
-    // Upstream preview metadata is not a supported Next App Router page export.
-    source: (file.path === "page.tsx"
-      ? file.source.replace(/^export const (?:iframeHeight|description) = [^\n]*\n\n?/gm, "")
-      : file.source)
-      .replaceAll(`@/blocks/${name}/`, "@/")
-      .replaceAll("@/blocks/shared/", "@/shared/"),
-  }));
-}
-
-const OVERVIEW = "@/blocks/shared/overview";
-const FILLED =
-  "From shadcn/ui the page comes with empty boxes where this one has <Overview />: a page of Solid Glass's own, shown with the block's files.";
-
-const block = (entry: Omit<Block, "files" | "component">): Block => {
-  const files = filesOf(entry.name, entry.own);
-  return {
-    ...entry,
-    note: files.some((file) => file.path === "shared/overview.tsx")
-      ? FILLED
-      : undefined,
-    files,
-    component: React.lazy(
-      pages[
-        entry.own
-          ? `/src/blocks/${entry.name}.tsx`
-          : `/src/blocks/${entry.name}/page.tsx`
-      ],
-    ),
-  };
-};
+const block = (entry: Omit<Block, "loadSource" | "component">): Block => ({
+  ...entry,
+  loadSource: () => import("./source").then((module) => module.loadBlockSource(entry.name, entry.own)),
+  component: React.lazy(
+    pages[
+      entry.own
+        ? `/src/blocks/${entry.name}.tsx`
+        : `/src/blocks/${entry.name}/page.tsx`
+    ],
+  ),
+});
 
 export const blocks: Block[] = [
   block({

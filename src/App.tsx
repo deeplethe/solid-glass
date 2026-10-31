@@ -16,7 +16,7 @@ const DocPage = React.lazy(() => import("@/site/docs").then((page) => ({ default
 const DevExamples = import.meta.env.DEV
   ? React.lazy(() => import("@/pages/dev-examples").then((page) => ({ default: page.DevExamples })))
   : null
-// The blocks carry their own source to show it: fetched with the Blocks page, not with every page.
+// Preview components and Code sources are fetched separately, when each is opened.
 const Blocks = React.lazy(() => import("@/pages/blocks").then((page) => ({ default: page.Blocks })))
 const BlockView = React.lazy(() => import("@/pages/block-view"))
 
