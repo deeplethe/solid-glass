@@ -5,7 +5,8 @@ export type Block =
   | { type: "heading"; depth: number; text: string; id: string }
   | { type: "code"; lang: string; title?: string; code: string }
   | { type: "preview"; name: string; align?: string; className?: string; wrapperClassName?: string; hideCode?: boolean }
-  | { type: "install"; cli?: string; packages?: string; source?: string }
+  | { type: "install"; cli: Block[]; manual: Block[] }
+  | { type: "steps"; blocks: Block[] }
   | { type: "source"; name?: string; title?: string }
   | { type: "widget"; name?: string }
   | { type: "callout"; text: string }
