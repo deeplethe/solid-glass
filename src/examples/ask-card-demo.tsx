@@ -12,7 +12,12 @@ export default function AskCardDemo() {
   return (
     <div className="w-full max-w-md">
       {/* Once answered, onAnswer is left out: the choices stay as a record. */}
-      <AskCard question={QUESTION} options={["Raise to 120s and rerun", "Leave out and say so"]} onAnswer={answer ? undefined : setAnswer} />
+      <AskCard
+        question={QUESTION}
+        options={["Raise to 120s and rerun", "Leave out and say so"]}
+        onAnswer={answer ? undefined : setAnswer}
+        chosen={answer ?? undefined}
+      />
       {answer && (
         <p className="mt-3 text-[12.5px] text-muted-foreground">
           Answered “{answer}”.{" "}

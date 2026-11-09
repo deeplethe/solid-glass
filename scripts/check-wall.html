@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wall behavior check</title>
+  </head>
+  <body>
+    <!-- Run npm run dev, then open /scripts/check-wall.html. No browser mocks or extra dependencies. -->
+    <main>
+      <h1>Wall behavior check</h1>
+      <pre id="results" role="status">Running…</pre>
+      <iframe title="Wall viewport" style="width: 390px; height: 900px; border: 0"></iframe>
+    </main>
+    <script type="module">
+      if (new URLSearchParams(location.search).has("frame")) {
+        document.querySelector("main").remove()
+        const React = await import("react")
+        const { createRoot } = await import("react-dom/client")
+        await import("/src/index.css")
+        const { Wall } = await import("/src/home/wall.tsx")
+        const host = document.createElement("div")
+        document.body.append(host)
+        globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
+        const nativeSetInterval = window.setInterval.bind(window)
+        const nativeClearInterval = window.clearInterval.bind(window)
+        const intervals = new Map()
+        let elapsedStarts = 0
+        window.setInterval = (callback, delay, ...args) => {
+          const id = nativeSetInterval(callback, delay, ...args)
+          intervals.set(id, delay)
+          if (delay === 1000) elapsedStarts++
+          return id
+        }
+        window.clearInterval = (id) => {
+          intervals.delete(id)
+          nativeClearInterval(id)
+        }
+
+        let root, firstColumn, firstInput, firstClock, firstCommit
+        const grid = () => host.querySelector('[data-slot="demo"] > div')
+        const columns = () => [...grid().children]
+        const clocks = () => [...intervals].filter(([, delay]) => delay === 1000).map(([id]) => id)
+        function check(condition, message) {
+          if (!condition) throw new Error(message)
+        }
+
+        window.wallCheck = {
+          async settle(expected) {
+            const deadline = performance.now() + 5000
+            do {
+              await React.act(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+              if (expected === undefined || columns().length === expected) return
+            } while (performance.now() < deadline)
+            throw new Error(`Timed out waiting for ${expected} columns at ${innerWidth}px`)
+          },
+          async mount(full, expected) {
+            elapsedStarts = 0
+            firstCommit = undefined
+            root = createRoot(host)
+            await React.act(async () => {
+              root.render(React.createElement(React.StrictMode, null,
+                React.createElement(React.Profiler, {
+                  id: "wall",
+                  onRender: () => { firstCommit ??= columns().length },
+                }, React.createElement(Wall, { full }))))
+            })
+            check(firstCommit === expected, `First commit has ${firstCommit} columns; expected ${expected}`)
+            // StrictMode sets up each mounted clock twice, with cleanup between them.
+            check(elapsedStarts === (expected === 1 ? 2 : 4), "Only mounted Status/Run clocks are created")
+            firstColumn = columns()[0]
+            firstInput = firstColumn.querySelector("input")
+            firstInput.value = "keep the first column"
+            firstClock = clocks()[0]
+          },
+          verify(expected, full) {
+            const current = columns()
+            check(current.length === expected, `${expected} columns are mounted`)
+            check(current.every((column) => getComputedStyle(column).display === "flex"), "No hidden column remains mounted")
+            check(getComputedStyle(grid()).gridTemplateColumns.split(" ").length === expected, "CSS and mounted column counts agree")
+            check(current.every((column, index) => column.children.length === [5, 4, 5, 5][index]), "Example counts and column order stay intact")
+            check(clocks().length === (expected === 1 ? 1 : 2), "Hidden Run has no active elapsed timer")
+            check(clocks().includes(firstClock), "Resizing preserves the first Status clock")
+            check(current[0] === firstColumn && current[0].querySelector("input") === firstInput && firstInput.value === "keep the first column",
+              "Resizing preserves the first column and its input")
+            check(grid().classList.contains("max-h-[1240px]") === !full, "full preserves the height limit semantics")
+            check(host.firstElementChild.children.length === (full ? 1 : 2), "full preserves the bottom fade semantics")
+          },
+          async tick() {
+            const status = firstColumn.querySelector('[data-slot="turn-status"]')
+            const before = status.textContent
+            await React.act(() => new Promise((resolve) => setTimeout(resolve, 1100)))
+            check(status.textContent !== before, "The first Status clock keeps ticking")
+          },
+          async unmount() {
+            await React.act(async () => root?.unmount())
+            root = undefined
+            check(intervals.size === 0, "Unmount clears all Wall intervals")
+          },
+        }
+      } else {
+        const output = document.getElementById("results")
+        const frame = document.querySelector("iframe")
+        const passed = []
+        let child
+        function pass(message) {
+          passed.push(`PASS ${message}`)
+          output.textContent = passed.join("\n")
+        }
+        try {
+          frame.src = `${location.pathname}?frame`
+          const deadline = performance.now() + 60000
+          while (!frame.contentWindow.wallCheck) {
+            if (performance.now() > deadline) throw new Error("Timed out loading the Wall check")
+            await new Promise((resolve) => setTimeout(resolve, 50))
+          }
+          child = frame.contentWindow.wallCheck
+          for (const full of [false, true]) {
+            frame.style.width = "390px"
+            await child.settle()
+            await child.mount(full, 1)
+            child.verify(1, full)
+            await child.tick()
+            pass(`full=${full}: narrow first mount creates only the first column and its running clock`)
+            await child.unmount()
+
+            frame.style.width = "1600px"
+            await child.settle()
+            await child.mount(full, 4)
+            child.verify(4, full)
+            pass(`full=${full}: desktop first commit already has all four columns`)
+            for (const width of [1400, 1399, 1024, 1023, 768, 767, 390, 768, 1024, 1400, 1600]) {
+              const expected = 1 + [768, 1024, 1400].filter((breakpoint) => width >= breakpoint).length
+              frame.style.width = `${width}px`
+              await child.settle(expected)
+              child.verify(expected, full)
+              pass(`full=${full}: ${width}px has ${expected} mounted columns, matching CSS, with correct timers`)
+            }
+            await child.unmount()
+            pass(`full=${full}: unmount clears every interval`)
+          }
+          output.dataset.result = "pass"
+          pass("All Wall behavior checks completed.")
+        } catch (error) {
+          output.dataset.result = "fail"
+          output.textContent = `${passed.join("\n")}\nFAIL ${error.stack ?? error}`
+          console.error("Wall behavior check failed", error)
+        } finally {
+          await child?.unmount()
+          frame.remove()
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -43,6 +43,8 @@ const steps: Step[] = [
 
 `StepList` is the opened list on its own. A row opens to the call itself, or to its diff when it changed a file.
 
+A group keeps the state of its rows. One call is one line; when a second joins it the group forms round the first, and if that call was open the group opens with it, with the keyboard still on the row it was on.
+
 <ComponentPreview name="tool-steps-list" align="start" />
 
 ## API Reference

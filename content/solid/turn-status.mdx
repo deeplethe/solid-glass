@@ -41,7 +41,7 @@ import { TurnStatus } from "@/components/ui/turn-status"
 
 ## With steps
 
-Given children, the line is a button and opens to show them: the calls of the step in hand.
+Given children, the line is a button and opens to show them: the calls of the step in hand. Once it has had children it stays a button, with nothing to open between steps, so the keyboard on it is not dropped as a step ends.
 The activity label is announced by a separate status region, so the button keeps
 its native role and updates to the clock and token count do not repeat the announcement.
 When `label` is omitted or blank, the activity name supplies the announcement and

@@ -34,4 +34,10 @@ import { AskCard } from "@/components/ui/ask-card"
 
 ## After the answer
 
-Once the conversation has moved on, leave `onAnswer` out. The choices are then no longer offered, and the card stays as a record of what was asked.
+Once the conversation has moved on, leave `onAnswer` out. The choices are then no longer offered, and the card stays as a record of what was asked. Give `chosen` the answer and it is a record of what was said too: that choice keeps its pane, the others fade to words.
+
+```tsx
+<AskCard question={question} options={options} onAnswer={answered ? undefined : send} chosen={answered} />
+```
+
+The choices are not disabled once answered, only inert: a disabled button drops the keyboard to the page on the very press that answers.

@@ -25,6 +25,7 @@ import {
 import { Bar, BarChart, XAxis } from "recharts"
 
 import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { AskCard } from "@/components/ui/ask-card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -708,6 +709,10 @@ function Background() {
  * the home page it is cut off at a height and fades out; `full` shows all of it.
  */
 export function Wall({ full = false }: { full?: boolean }) {
+  // Match the CSS breakpoints so hidden examples do not mount or run effects.
+  const showSecondColumn = useMediaQuery("(min-width: 48rem)")
+  const showThirdColumn = useMediaQuery("(min-width: 64rem)")
+  const showFourthColumn = useMediaQuery("(min-width: 1400px)")
   const column = "min-w-0 flex-col gap-(--gap)"
   return (
     <div data-slot="demo" className={cn("relative w-full overflow-hidden p-6 [--gap:--spacing(6)] xl:[--gap:--spacing(7)]", !full && "pb-0")}>
@@ -724,26 +729,32 @@ export function Wall({ full = false }: { full?: boolean }) {
           <Status />
           <Notifications />
         </div>
-        <div className={cn(column, "hidden md:flex")}>
-          <Activity />
-          <Run />
-          <CreateProject />
-          <Storage />
-        </div>
-        <div className={cn(column, "hidden lg:flex")}>
-          <Palette />
-          <ComposerDemo />
-          <Members />
-          <Account />
-          <Confirm />
-        </div>
-        <div className={cn(column, "hidden min-[1400px]:flex")}>
-          <Message />
-          <Changes />
-          <Invoices />
-          <Files />
-          <Background />
-        </div>
+        {showSecondColumn && (
+          <div className={cn(column, "hidden md:flex")}>
+            <Activity />
+            <Run />
+            <CreateProject />
+            <Storage />
+          </div>
+        )}
+        {showThirdColumn && (
+          <div className={cn(column, "hidden lg:flex")}>
+            <Palette />
+            <ComposerDemo />
+            <Members />
+            <Account />
+            <Confirm />
+          </div>
+        )}
+        {showFourthColumn && (
+          <div className={cn(column, "hidden min-[1400px]:flex")}>
+            <Message />
+            <Changes />
+            <Invoices />
+            <Files />
+            <Background />
+          </div>
+        )}
       </div>
       {!full && <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-48 bg-linear-to-t from-background via-background/80 to-transparent" />}
     </div>

@@ -50,6 +50,8 @@ continue to apply to the outer wrapper.
 
 The send mark has no block behind it in any state: its brightness says what it will do. With `running`, it is the quiet square that stops the turn, until something is typed, which is then sent behind it.
 
+The mark is never disabled. With nothing to send and nothing to stop it is dim and does nothing, but it stays where it is, so the keyboard on it is not dropped to the page as the text goes or the turn ends. Sent or stopped from the keyboard, the focus returns to the text; the pointer never takes it away. While the text is being written, the pane's hairline is drawn in the focus line.
+
 <ComponentPreview name="composer-running" />
 
 ## Footer

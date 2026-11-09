@@ -62,7 +62,13 @@ function TurnStatus({
 }) {
   const [open, setOpen] = React.useState(false)
   const elapsed = useElapsed(since)
-  const opens = Boolean(children)
+  // Once the line has had something to open it stays a button. Turned back
+  // into plain words between steps, it would drop the keyboard on it to the
+  // page; between steps it is a button with nothing to open, and still there.
+  const [hadChildren, setHadChildren] = React.useState(Boolean(children))
+  if (children && !hadChildren) setHadChildren(true)
+  const opens = Boolean(children) || hadChildren
+  const openable = Boolean(children)
   // The glyph is decorative. Even without visible words, expose the activity
   // and keep the disclosure's name independent of the clock and token count.
   const activityLabel = label?.trim() || activity
@@ -93,12 +99,16 @@ function TurnStatus({
           <button
             type="button"
             aria-label={activityLabel}
-            aria-expanded={open}
-            onClick={() => setOpen((value) => !value)}
-            className="flex w-fit max-w-full items-center gap-2 text-[12.5px] text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-foreground"
+            aria-expanded={openable ? open : undefined}
+            aria-disabled={!openable || undefined}
+            onClick={() => openable && setOpen((value) => !value)}
+            className={cn(
+              "flex w-fit max-w-full items-center gap-2 text-[12.5px] text-muted-foreground transition-colors outline-none",
+              openable ? "hover:text-foreground focus-visible:text-foreground" : "cursor-default"
+            )}
           >
             {line}
-            <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+            {openable && <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />}
           </button>
         ) : (
           <div className="flex w-fit max-w-full items-center gap-2 text-[12.5px] text-muted-foreground">

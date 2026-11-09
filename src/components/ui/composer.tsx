@@ -70,6 +70,11 @@ function Composer({
   // which is then queued behind the turn like any other message.
   const stops = running && !ready
   const Icon = stops ? Square : ArrowUp
+  // With nothing to send and nothing to stop, the mark does nothing. It is
+  // not disabled for that: a disabled button drops the keyboard to the page
+  // at the moment the text is sent or the turn ends, which is when the
+  // keyboard was last on it.
+  const inert = !stops && !ready
 
   const resize = React.useCallback(() => {
     const el = textarea.current
@@ -102,7 +107,9 @@ function Composer({
     <div
       data-slot="composer"
       className={cn(
-        "group/composer relative rounded-xl bg-card py-2 pr-1 pl-2 transition-colors focus-within:border-ring/60",
+        // The pane has no border for a focus colour to show on; while the text
+        // is being written, its hairline is drawn again in the focus line.
+        "group/composer relative rounded-xl bg-card py-2 pr-1 pl-2 transition-colors focus-within:outline-1 focus-within:-outline-offset-1 focus-within:outline-(--focus-line)",
         className
       )}
       {...props}
@@ -153,15 +160,23 @@ function Composer({
           <Button
             size="icon"
             aria-label={stops ? stopLabel : sendLabel}
-            disabled={!stops && !ready}
-            onClick={stops ? onStop : submit}
+            aria-disabled={inert || undefined}
+            // The pointer sends; the keyboard stays in the text, as in any composer.
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              if (inert) return
+              if (stops) onStop?.()
+              else submit()
+              // Sent or stopped from the keyboard, the next thing to do is write.
+              textarea.current?.focus()
+            }}
             className={cn(
-              "shrink-0 rounded-md bg-transparent transition-colors hover:bg-accent",
+              "shrink-0 rounded-md bg-transparent transition-colors hover:bg-accent aria-disabled:cursor-default aria-disabled:active:translate-y-0",
               stops
                 ? "text-muted-foreground hover:text-foreground"
                 : ready
                   ? "text-foreground"
-                  : "text-muted-foreground/50 hover:bg-transparent disabled:opacity-100"
+                  : "text-muted-foreground/50 hover:bg-transparent"
             )}
           >
             <Icon className={cn("size-4", stops && "size-2.5 fill-current")} />
@@ -217,6 +232,7 @@ function ComposerPick<T extends string>({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        data-slot="composer-pick"
         aria-label={label}
         className="glass-held flex h-6 items-center gap-1 rounded-sm px-1.5 text-[12px] text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-foreground aria-expanded:text-foreground"
       >
