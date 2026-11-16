@@ -18,8 +18,15 @@ concurrency:
 jobs:
   # Branch protection asks for this job by name: renaming it takes it out of the merge gate.
   web:
+    # Keep the existing protected check authoritative for both frameworks.
+    needs: svelte
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Svelte consumer passed
+        env:
+          SVELTE_RESULT: ${{ needs.svelte.result }}
+        run: test "$SVELTE_RESULT" = success
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:

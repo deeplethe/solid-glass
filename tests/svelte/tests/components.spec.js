@@ -7,6 +7,22 @@ for (const theme of ["light", "dark"]) {
     await page.goto("/")
     await page.evaluate(theme => document.documentElement.classList.toggle("dark", theme === "dark"), theme)
     const search = page.getByRole("button", { name: "Search", exact: true })
+    // Assert emitted utilities, not just semantic attributes: Tailwind skips
+    // gitignored registry output unless the fixture explicitly registers it.
+    const card = page.locator('[data-slot="ask-card"]').first()
+    await expect(card).toHaveCSS("padding-left", "14px")
+    await expect(card).toHaveCSS("padding-top", "12px")
+    expect(parseFloat(await card.evaluate(node => getComputedStyle(node).borderRadius))).toBeGreaterThan(0)
+    await expect(card.locator("div").first()).toHaveCSS("gap", "6px")
+    await expect(search).toHaveCSS("height", "28px")
+    await expect(search).toHaveCSS("padding-left", "10px")
+    const dots = page.getByRole("status").locator(".animate-dot-flash")
+    for (const dot of await dots.all()) {
+      await expect(dot).toHaveCSS("width", "3px")
+      await expect(dot).toHaveCSS("height", "3px")
+      await expect(dot).toHaveCSS("animation-name", "sg-dot-flash")
+      expect(await dot.evaluate(node => getComputedStyle(node).backgroundColor)).not.toBe("rgba(0, 0, 0, 0)")
+    }
     await page.keyboard.press("Tab")
     await expect(search).toBeFocused()
     await expect(search).toHaveCSS("outline-style", "solid")

@@ -101,7 +101,7 @@ markup and track structure. Future checkbox, tabs, menu, dialog and progress
 ports must each add a native consumer fixture and state/keyboard/theme tests
 before their registry entries are published.
 
-Run the consumer locally after `npm run docs`:
+Run the consumer with Node 22 (the CI version) after `npm run docs`:
 
 ```sh
 cd tests/svelte
@@ -116,3 +116,14 @@ npm test
 The fixture deliberately uses nondefault UI and utils aliases. Browser tests run
 against its production build, covering both themes, keyboard choice/focus,
 answered-state inertness, reset, small-screen wrapping and reduced motion.
+
+If installed component files are excluded by `.gitignore`, Tailwind 4 will not
+scan them automatically. Register their actual directory with `@source` in your
+app stylesheet (after the imports), for example:
+
+```css
+@source "./lib/components/ui/**/*.svelte";
+```
+
+The fixture explicitly registers its gitignored custom UI directory and asserts
+rendered padding, rounding, gaps and dot sizes to catch missing utility output.

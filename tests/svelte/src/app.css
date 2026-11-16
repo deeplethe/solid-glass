@@ -1,2 +1,5 @@
 @import "tailwindcss";
 @import "./solid-glass.css";
+
+/* Registry output is ignored by Git, so Tailwind cannot discover it automatically. */
+@source "./lib/consumer-ui/**/*.svelte";
