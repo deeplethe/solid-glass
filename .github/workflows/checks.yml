@@ -18,6 +18,32 @@ concurrency:
 jobs:
   # Branch protection asks for this job by name: renaming it takes it out of the merge gate.
   web:
+    # Keep the existing protected check authoritative for both frameworks.
+    needs: svelte
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Svelte consumer passed
+        env:
+          SVELTE_RESULT: ${{ needs.svelte.result }}
+        run: test "$SVELTE_RESULT" = success
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test scripts/block-metadata.test.mjs scripts/build-svelte-registry.test.mjs
+      # the documentation and the registry are generated: the types of what renders them depend on them
+      - run: npm run docs
+      - name: The registry is as committed
+        # registry.json is written by scripts/build-registry.mjs and is what shadcn add reads from
+        # GitHub; a component added without rebuilding it would be missing from the registry.
+        run: git diff --exit-code registry.json registry/svelte/registry.json
+      - run: npm run typecheck
+      - run: npm run build
+
+  svelte:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,13 +51,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: tests/svelte/package-lock.json
+      - run: node scripts/build-svelte-registry.mjs
       - run: npm ci
-      - run: node --test scripts/block-metadata.test.mjs
-      # the documentation and the registry are generated: the types of what renders them depend on them
-      - run: npm run docs
-      - name: The registry is as committed
-        # registry.json is written by scripts/build-registry.mjs and is what shadcn add reads from
-        # GitHub; a component added without rebuilding it would be missing from the registry.
-        run: git diff --exit-code registry.json
-      - run: npm run typecheck
-      - run: npm run build
+        working-directory: tests/svelte
+      - run: npm run install:registry
+        working-directory: tests/svelte
+      - run: npm run check && npm run build
+        working-directory: tests/svelte
+      - run: npx playwright install --with-deps chromium
+        working-directory: tests/svelte
+      - run: npm test
+        working-directory: tests/svelte
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: svelte-browser-results
+          path: tests/svelte/test-results/
