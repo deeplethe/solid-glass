@@ -1,0 +1,7 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+src/lib/components/
+src/solid-glass.css
+src/lib/consumer-ui/

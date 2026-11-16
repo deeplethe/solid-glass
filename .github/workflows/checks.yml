@@ -35,3 +35,29 @@ jobs:
         run: git diff --exit-code registry.json registry/svelte/registry.json
       - run: npm run typecheck
       - run: npm run build
+
+  svelte:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/svelte/package-lock.json
+      - run: node scripts/build-svelte-registry.mjs
+      - run: npm ci
+        working-directory: tests/svelte
+      - run: npm run install:registry
+        working-directory: tests/svelte
+      - run: npm run check && npm run build
+        working-directory: tests/svelte
+      - run: npx playwright install --with-deps chromium
+        working-directory: tests/svelte
+      - run: npm test
+        working-directory: tests/svelte
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: svelte-browser-results
+          path: tests/svelte/test-results/

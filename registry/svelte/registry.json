@@ -7,7 +7,7 @@
       "name": "solid-glass",
       "type": "registry:file",
       "title": "Solid Glass material for Svelte",
-      "description": "Shared material for the Svelte proof of concept. Import after your app's Tailwind styles. Stock component parity is not yet audited.",
+      "description": "Canonical material for Svelte AskCard and DotLoader. Import after Tailwind; stock shadcn-svelte widgets are not covered.",
       "files": [
         {
           "path": "src/solid-glass.css",
