@@ -26,12 +26,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node --test scripts/block-metadata.test.mjs
+      - run: node --test scripts/block-metadata.test.mjs scripts/build-svelte-registry.test.mjs
       # the documentation and the registry are generated: the types of what renders them depend on them
       - run: npm run docs
       - name: The registry is as committed
         # registry.json is written by scripts/build-registry.mjs and is what shadcn add reads from
         # GitHub; a component added without rebuilding it would be missing from the registry.
-        run: git diff --exit-code registry.json
+        run: git diff --exit-code registry.json registry/svelte/registry.json
       - run: npm run typecheck
       - run: npm run build

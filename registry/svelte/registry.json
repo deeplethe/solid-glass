@@ -1,0 +1,50 @@
+{
+  "$schema": "https://shadcn-svelte.com/schema/registry.json",
+  "name": "solid-glass-svelte",
+  "homepage": "https://deeplethe.github.io/solid-glass",
+  "items": [
+    {
+      "name": "solid-glass",
+      "type": "registry:file",
+      "title": "Solid Glass material for Svelte",
+      "description": "Shared material for the Svelte proof of concept. Import after your app's Tailwind styles. Stock component parity is not yet audited.",
+      "files": [
+        {
+          "path": "src/solid-glass.css",
+          "type": "registry:file",
+          "target": "~/src/solid-glass.css"
+        }
+      ]
+    },
+    {
+      "name": "ask-card",
+      "type": "registry:ui",
+      "title": "Ask Card",
+      "registryDependencies": [
+        "https://deeplethe.github.io/solid-glass/r/svelte/solid-glass.json"
+      ],
+      "files": [
+        {
+          "path": "registry/svelte/ask-card/ask-card.svelte",
+          "type": "registry:ui",
+          "target": "ask-card/ask-card.svelte"
+        }
+      ]
+    },
+    {
+      "name": "dot-loader",
+      "type": "registry:ui",
+      "title": "Dot Loader",
+      "registryDependencies": [
+        "https://deeplethe.github.io/solid-glass/r/svelte/solid-glass.json"
+      ],
+      "files": [
+        {
+          "path": "registry/svelte/dot-loader/dot-loader.svelte",
+          "type": "registry:ui",
+          "target": "dot-loader/dot-loader.svelte"
+        }
+      ]
+    }
+  ]
+}
